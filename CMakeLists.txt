@@ -14,6 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
+  pcl_ros
+  roslib
+  pcl_conversions
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -71,11 +75,12 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   sensor_msgs#   std_msgs
-# )
-
+ generate_messages(
+   DEPENDENCIES
+   geometry_msgs
+   sensor_msgs
+   std_msgs
+ )
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
 ################################################
@@ -91,11 +96,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
+ generate_dynamic_reconfigure_options(
+   cfg/rotation.cfg
 #   cfg/DynReconf2.cfg
-# )
-
+ )
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -122,6 +126,13 @@ include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
 )
+
+add_executable(${PROJECT_NAME}_node src/rotation_filter.cpp)
+
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_gencpp ${PCL_LIBRARIES} ${PROJECT_NAME}_gencfg)
+
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
