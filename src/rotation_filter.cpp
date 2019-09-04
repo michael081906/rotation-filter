@@ -33,8 +33,8 @@ private:
   ros::NodeHandle n;
   ros::Publisher points_filtered;
   ros::Subscriber sub_pcl;
-  double passthrough_x_p, passthrough_y_p, passthrough_z_p;
-  double passthrough_x_n, passthrough_y_n, passthrough_z_n;
+  float passthrough_x_p, passthrough_y_p, passthrough_z_p;
+  float passthrough_x_n, passthrough_y_n, passthrough_z_n;
   double rotation_x, rotation_y, rotation_z;
   typedef pcl::PointCloud<pcl::PointXYZI> PointCloud;
   PointCloud pointcloud_in;
@@ -79,7 +79,7 @@ public:
     rotation_y = 0.0;
     rotation_z = 0.0;
     points_filtered = n.advertise<PointCloud> ("points",1);
-    sub_pcl = n.subscribe("/see_scope/overlay/cog", 1, &rotation_filter_::callback, this);
+    sub_pcl = n.subscribe("/camera/depth_registered/points", 1, &rotation_filter_::callback, this);
     f = boost::bind(&rotation_filter_::callback_d,this, _1, _2);
     server.setCallback(f);
   }
@@ -104,6 +104,8 @@ public:
       PointCloud::Ptr transformed_cloud (new PointCloud ());
       pcl::transformPointCloud (*source_cloud, *transformed_cloud, transforms_point);
 
+
+
       // passthrough filtering
       pcl::PassThrough<pcl::PointXYZI> pass;
       pass.setInputCloud (transformed_cloud); // setinput needs ptr
@@ -122,6 +124,8 @@ public:
       pass.filter (*transformed_cloud);
       pass.getRemovedIndices(PointIndices_z);
 
+
+
       // remove the indices
       pcl::PointIndices::Ptr indices_x(new pcl::PointIndices(PointIndices_x));
       pcl::PointIndices::Ptr indices_y(new pcl::PointIndices(PointIndices_y));
@@ -139,14 +143,17 @@ public:
       extract.setIndices(indices_z);
       extract.setNegative(true);
       extract.filter(*source_cloud);
-      pointcloud_filtered = *source_cloud;
+
+      
+      //pointcloud_filtered = *source_cloud;
+      pointcloud_filtered = *transformed_cloud;
 
       std_msgs::Header header;
       header.stamp = ros::Time::now();
       header.seq = seq++; // is this correct
-      header.frame_id = std::string("mono");
-      pointcloud_filtered.header = pcl_conversions::toPCL(header);
-      points_filtered.publish(pointcloud_filtered);
+      header.frame_id = std::string("camera_color_optical_frame");
+      transformed_cloud->header = pcl_conversions::toPCL(header);
+      points_filtered.publish(*transformed_cloud);
       ros::spinOnce();
       loop_rate.sleep();
     }
