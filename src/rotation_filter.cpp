@@ -32,6 +32,7 @@ class rotation_filter_{
 private:
   ros::NodeHandle n;
   ros::Publisher points_filtered;
+  ros::Publisher points_filtered_dbg;
   ros::Subscriber sub_pcl;
   float passthrough_x_p, passthrough_y_p, passthrough_z_p;
   float passthrough_x_n, passthrough_y_n, passthrough_z_n;
@@ -79,6 +80,7 @@ public:
     rotation_y = 0.0;
     rotation_z = 0.0;
     points_filtered = n.advertise<PointCloud> ("points",1);
+    points_filtered_dbg = n.advertise<PointCloud> ("points_dbg",1);
     sub_pcl = n.subscribe("/camera/depth_registered/points", 1, &rotation_filter_::callback, this);
     f = boost::bind(&rotation_filter_::callback_d,this, _1, _2);
     server.setCallback(f);
@@ -144,16 +146,19 @@ public:
       extract.setNegative(true);
       extract.filter(*source_cloud);
 
-      
+
       //pointcloud_filtered = *source_cloud;
-      pointcloud_filtered = *transformed_cloud;
+      //pointcloud_filtered = *transformed_cloud;
 
       std_msgs::Header header;
       header.stamp = ros::Time::now();
       header.seq = seq++; // is this correct
       header.frame_id = std::string("camera_color_optical_frame");
+      source_cloud->header = pcl_conversions::toPCL(header);
+      points_filtered.publish(*source_cloud);
+
       transformed_cloud->header = pcl_conversions::toPCL(header);
-      points_filtered.publish(*transformed_cloud);
+      points_filtered_dbg.publish(*transformed_cloud);
       ros::spinOnce();
       loop_rate.sleep();
     }
