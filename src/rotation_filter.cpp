@@ -106,15 +106,25 @@ public:
       PointCloud::Ptr transformed_cloud (new PointCloud ());
       pcl::transformPointCloud (*source_cloud, *transformed_cloud, transforms_point);
 
+      PointCloud::Ptr source_cloud_dbg(new PointCloud());
 
 
       // passthrough filtering
-      pcl::PassThrough<pcl::PointXYZI> pass;
+      /*
+      In order to use the getRemovedIndices system you need to initialize your class differently:
+      change this:
+      pcl::PassThrough<pcl::PointXYZ> pass;
+      into this:
+      pcl::PassThrough<pcl::PointXYZ> pass (true);
+      */
+
+      pcl::PassThrough<pcl::PointXYZI> pass(true);
       pass.setInputCloud (transformed_cloud); // setinput needs ptr
       pass.setFilterFieldName ("x");
       pass.setFilterLimits (passthrough_x_n, passthrough_x_p);
       pass.filter (*transformed_cloud);  // filter needs point cloud
       pass.getRemovedIndices(PointIndices_x);
+      //std::cout << PointIndices_x << std::endl;
       pass.setInputCloud (transformed_cloud);
       pass.setFilterFieldName ("y");
       pass.setFilterLimits (passthrough_y_n, passthrough_y_p);
@@ -125,6 +135,7 @@ public:
       pass.setFilterLimits (passthrough_z_n, passthrough_z_p);
       pass.filter (*transformed_cloud);
       pass.getRemovedIndices(PointIndices_z);
+
 
 
 
@@ -145,7 +156,6 @@ public:
       extract.setIndices(indices_z);
       extract.setNegative(true);
       extract.filter(*source_cloud);
-
 
       //pointcloud_filtered = *source_cloud;
       //pointcloud_filtered = *transformed_cloud;
