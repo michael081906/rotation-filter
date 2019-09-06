@@ -70,12 +70,12 @@ public:
 
   rotation_filter_()
   {
-    passthrough_x_p = 0.01;
-    passthrough_y_p = 0.01;
-    passthrough_z_p = 0.01;
-    passthrough_x_n = -0.01;
-    passthrough_y_n = -0.01;
-    passthrough_z_n = -0.01;
+    passthrough_x_p = 0.5;
+    passthrough_y_p = 0.5;
+    passthrough_z_p = 0.5;
+    passthrough_x_n = -0.5;
+    passthrough_y_n = -0.5;
+    passthrough_z_n = -0.5;
     rotation_x = 0.0;
     rotation_y = 0.0;
     rotation_z = 0.0;
