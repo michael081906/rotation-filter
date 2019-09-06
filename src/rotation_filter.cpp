@@ -37,7 +37,7 @@ private:
   float passthrough_x_p, passthrough_y_p, passthrough_z_p;
   float passthrough_x_n, passthrough_y_n, passthrough_z_n;
   double rotation_x, rotation_y, rotation_z;
-  typedef pcl::PointCloud<pcl::PointXYZI> PointCloud;
+  typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
   PointCloud pointcloud_in;
   PointCloud pointcloud_filtered;
   pcl::PointIndices PointIndices_x;
@@ -118,7 +118,7 @@ public:
       pcl::PassThrough<pcl::PointXYZ> pass (true);
       */
 
-      pcl::PassThrough<pcl::PointXYZI> pass(true);
+      pcl::PassThrough<pcl::PointXYZRGB> pass(true);
       pass.setInputCloud (transformed_cloud); // setinput needs ptr
       pass.setFilterFieldName ("x");
       pass.setFilterLimits (passthrough_x_n, passthrough_x_p);
@@ -143,7 +143,7 @@ public:
       pcl::PointIndices::Ptr indices_x(new pcl::PointIndices(PointIndices_x));
       pcl::PointIndices::Ptr indices_y(new pcl::PointIndices(PointIndices_y));
       pcl::PointIndices::Ptr indices_z(new pcl::PointIndices(PointIndices_z));
-      pcl::ExtractIndices<pcl::PointXYZI> extract;
+      pcl::ExtractIndices<pcl::PointXYZRGB> extract;
       extract.setInputCloud(source_cloud);
       extract.setIndices(indices_x);
       extract.setNegative(true);
