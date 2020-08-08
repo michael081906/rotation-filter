@@ -29,17 +29,22 @@ How to use or run this node?
 
 
 class rotation_filter_{
+    typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
+
 private:
   ros::NodeHandle n;
   ros::Publisher points_filtered;
   ros::Publisher points_filtered_dbg;
   ros::Subscriber sub_pcl;
+  // Parameters used in pcl::passthrough
   float passthrough_x_p, passthrough_y_p, passthrough_z_p;
   float passthrough_x_n, passthrough_y_n, passthrough_z_n;
+  // User can adjust the rotation of the filter itself
   double rotation_x, rotation_y, rotation_z;
-  typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
+
   PointCloud pointcloud_in;
   PointCloud pointcloud_filtered;
+
   pcl::PointIndices PointIndices_x;
   pcl::PointIndices PointIndices_y;
   pcl::PointIndices PointIndices_z;
@@ -85,8 +90,6 @@ public:
     f = boost::bind(&rotation_filter_::callback_d,this, _1, _2);
     server.setCallback(f);
   }
-  ~rotation_filter_()
-  {}
 
   void spin_()
   {

@@ -1,0 +1,39 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/mkam/catkin_ws/devel/include/**",
+                "/opt/ros/kinetic/include/**",
+                "/usr/include/**",
+                "/home/mkam/catkin_ws/src/apriltag_ros/apriltag_ros/include/**",
+                "/home/mkam/catkin_ws/src/mkam_moveit/tools/canopen/include/**",
+                "/home/mkam/catkin_ws/src/gazebo_ros_pkgs/gazebo_plugins/include/**",
+                "/home/mkam/catkin_ws/src/gazebo_ros_pkgs/gazebo_ros/include/**",
+                "/home/mkam/catkin_ws/src/gazebo_ros_pkgs/gazebo_ros_control/include/**",
+                "/home/mkam/catkin_ws/src/iiwa_stack_new/iiwa_hw/include/**",
+                "/home/mkam/catkin_ws/src/iiwa_stack_new/iiwa_ros/include/**",
+                "/home/mkam/catkin_ws/src/mk_gui/include/**",
+                "/home/mkam/catkin_ws/src/mk_kine/include/**",
+                "/home/mkam/catkin_ws/src/mk_mot/include/**",
+                "/home/mkam/catkin_ws/src/mk_surgical_setup/include/**",
+                "/home/mkam/catkin_ws/src/non_rigid_registration_pkg/include/**",
+                "/home/mkam/catkin_ws/src/pilz_industrial_motion/pilz_extensions/include/**",
+                "/home/mkam/catkin_ws/src/pilz_industrial_motion/pilz_industrial_motion_testutils/include/**",
+                "/home/mkam/catkin_ws/src/pilz_industrial_motion/pilz_trajectory_generation/include/**",
+                "/home/mkam/catkin_ws/src/test_urdf_texture/include/**",
+                "/home/mkam/catkin_ws/src/mkam_moveit/tools/uta_rtt/include/**",
+                "/usr/include/**"
+            ],
+            "name": "ROS",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
