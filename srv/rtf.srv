@@ -1,0 +1,11 @@
+# rtf.srv
+int32 task_id
+string tf_ref
+string tf_target
+string tf_new
+float64 offset_x
+float64 offset_y
+float64 offset_z
+---------------
+int32 error_
+string module_

@@ -22,6 +22,9 @@
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
+#include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
+#include <rotation_filter_/rtf.h>
 
 
 class rotation_filter_{
@@ -33,6 +36,7 @@ class rotation_filter_{
     ros::Publisher points_filtered_dbg;
     ros::Subscriber sub_pcl;
     ros::Publisher vis_pub;
+    ros::ServiceServer rtf_sv;
     // Parameters used in pcl::passthrough
     float passthrough_x_p, passthrough_y_p, passthrough_z_p;
     float passthrough_x_n, passthrough_y_n, passthrough_z_n;
@@ -42,7 +46,6 @@ class rotation_filter_{
 
     visualization_msgs::Marker marker_for_drawing_rviz; 
 
-
     PointCloud pointcloud_in;
     PointCloud pointcloud_filtered;
     
@@ -50,6 +53,7 @@ class rotation_filter_{
     pcl::PointIndices PointIndices_y;
     pcl::PointIndices PointIndices_z;
     void callback(const sensor_msgs::PointCloud2Ptr& cloud);
+    bool rtf_main_callback(rotation_filter_::rtf::Request& req, rotation_filter_::rtf::Response& res);
     
     dynamic_reconfigure::Server<rotation_filter::rotationConfig> server;
     dynamic_reconfigure::Server<rotation_filter::rotationConfig>::CallbackType f;
@@ -61,12 +65,64 @@ class rotation_filter_{
     std::vector<geometry_msgs::Point> points_for_corner;
     std_msgs::ColorRGBA color;
 
+      enum RTF_TASK {
+      /*2020/8/8*/SET_TF_TASK  = 1,
+      /*2020/8/8*/SET_OFFSET_TASK = 2,
+      /*2020/8/8*/SET_TF_OFFSET_TASK = 3,
+      };
+
     std::string rviz_frame;
+
+    tf::TransformBroadcaster br;
+    tf::TransformListener listener;
+    tf::Transform transform;
+    bool broadcaster_set = false;
+    void set_broadcaster(std::string tf_target_ref, std::string tf_target, std::string tf_new, double offest_x, doulbe offset_y, double offset_z);
+    double R;
+    double P;
+    double Y;
+    std::string tf_target_frame;
+    std::string tf_new_frame_wrt_target_frame;
+    tf::Quaternion new_q;
+
 
     public:
     rotation_filter_();
     void spin_();
+    typedef boost::function<bool (rotation_filter_::rtf::Request& req, rotation_filter_::rtf::Response& res)> rtf_t;
 };
+
+bool rotation_filter_::rtf_main_callback(rotation_filter_::rtf::Request& req, rotation_filter_::rtf::Response& res)
+{  
+      ROS_INFO_STREAM("[RTF] A service was called ");
+      res.module_ = "RTF";
+      int error_ = 0;
+        switch(req.task_id)
+        {
+         case RTF_TASK::SET_TF_TASK: {
+         ROS_INFO_STREAM("RTF_TASK::SET_TF_TASK");
+         set_broadcaster(req.tf_ref, req.tf_target, req.tf_new, 0, 0, 0);
+         break;
+       }
+         case RTF_TASK::SET_OFFSET_TASK: {
+         ROS_INFO_STREAM("RTF_TASK::SET_OFFSET_TASK");
+         transform.setOrigin( tf::Vector3(offest_x, offset_y, offset_z) );
+         break;
+       }
+        case RTF_TASK::SET_TF_OFFSET_TASK: {
+         ROS_INFO_STREAM("RTF_TASK::SET_TF_OFFSET_TASK");
+         set_broadcaster(req.tf_ref, req.tf_target, req.tf_new, offset_x, offset_y, offset_z);
+         break;
+       }
+       
+       default:
+       error_ = 2;
+       break;
+        }//switch
+
+       res.error_ = error_;
+       return true;
+ }
 
 rotation_filter_::rotation_filter_()
   {
@@ -85,12 +141,14 @@ rotation_filter_::rotation_filter_()
     point_centroid.x = 0.0;
     point_centroid.y = 0.0;
     point_centroid.z = 0.0;
+    
     points_filtered = n.advertise<PointCloud> ("points",1);
     points_filtered_dbg = n.advertise<PointCloud> ("points_dbg",1);
     vis_pub =  n.advertise<visualization_msgs::Marker>( "visualization_marker", 0 );
     sub_pcl = n.subscribe("/camera/depth_registered/points", 1, &rotation_filter_::callback, this);
     f = boost::bind(&rotation_filter_::callback_d,this, _1, _2);
     server.setCallback(f);
+    
     rviz_frame = "world";
 
     // http://www.menucool.com/rgba-color-picker
@@ -101,6 +159,10 @@ rotation_filter_::rotation_filter_()
     points_for_corner.reserve(16);
     points_corner_computes();
     store_points_boundaries_rviz();
+
+    rtf_t rtf_main_callback = boost::bind(&rotation_filter_::pcp_main_callback, this, _1, _2);
+    rtf_sv = n.advertiseService("/rtf_client", rtf_main_callback);
+     
   }
 
 void rotation_filter_::callback(const sensor_msgs::PointCloud2Ptr& cloud) {
@@ -116,6 +178,12 @@ void rotation_filter_::callback_d(rotation_filter::rotationConfig &config, uint3
               rotation_x = config.rotation_x * M_PI/180.0;
               rotation_y = config.rotation_y * M_PI/180.0;
               rotation_z = config.rotation_z * M_PI/180.0;
+
+              R = R + rotation_x;
+              P = P + rotation_y;
+              Y = Y + rotation_z;
+              new_q.setRPY(R,P,Y);
+              transform.setRotation(new_q);
               
               passthrough_x_p = config.passthrough_x_p;
               passthrough_y_p = config.passthrough_y_p;
@@ -130,10 +198,13 @@ void rotation_filter_::callback_d(rotation_filter::rotationConfig &config, uint3
 
 void rotation_filter_::spin_()
 {
-    ros::Rate loop_rate(0.5);
+    ros::Rate loop_rate(2);
     int seq = 0;
     while (ros::ok())
     {
+      if(broadcaster_set) br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), tf_target_frame, tf_new_frame_wrt_target_frame));
+
+      /*
       // rotating the point cloud
       Eigen::Affine3f transforms_point = Eigen::Affine3f::Identity();
       transforms_point.translation() << 0.0 ,0.0 ,0.0;
@@ -157,7 +228,7 @@ void rotation_filter_::spin_()
       into this:
       pcl::PassThrough<pcl::PointXYZ> pass (true);
       */
-
+/*
       pcl::PassThrough<pcl::PointXYZRGB> pass(true);
       pass.setInputCloud (transformed_cloud); // setinput needs ptr
       pass.setFilterFieldName ("x");
@@ -209,6 +280,7 @@ void rotation_filter_::spin_()
 
       transformed_cloud->header = pcl_conversions::toPCL(header);
       points_filtered_dbg.publish(*transformed_cloud);
+      */
       ros::spinOnce();
       loop_rate.sleep();
     }
@@ -291,4 +363,31 @@ void rotation_filter_::store_points_boundaries_rviz()
     for(int i = 0; i < marker_for_drawing_rviz.points.size(); i++) marker_for_drawing_rviz.colors.push_back(color); 
     vis_pub.publish(marker_for_drawing_rviz);
     ros::spinOnce();
+}
+
+void rotation_filter_::set_broadcaster(std::string tf_target_ref, std::string tf_target, std::string tf_new, double offest_x, doulbe offset_y, double offset_z)
+{
+  // first listen to the tf_ref 
+  tf::StampedTransform stamped_transform;
+  bool No_info; 
+  while(No_info)
+  { No_info = false;
+    try{
+      listener.lookupTransform(tf_target_ref, tf_target,  
+                               ros::Time(0), stamped_transform);
+    }
+    catch (tf::TransformException ex){
+      ROS_ERROR("%s",ex.what());
+      ros::Duration(1.0).sleep();
+      No_info = true;
+    }
+  }
+
+  // second, use it orientation to publish
+  transform.setOrigin( tf::Vector3(offest_x, offset_y, offset_z) );
+  transform.setRotation(stamped_transform.getRotation());
+  stamped_transform.getBasis().getRPY(R,P,Y);
+  broadcaster_set = true;
+  tf_target_frame = tf_target ; 
+  tf_new_frame_wrt_target_frame = tf_new; 
 }
