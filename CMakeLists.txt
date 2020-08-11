@@ -61,11 +61,12 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+ add_service_files(
+   DIRECTORY
+   srv
+   FILES
+   rtf.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -132,7 +133,7 @@ add_executable(${PROJECT_NAME}_node src/rotation_filter.cpp src/rotation_filter.
 
 target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
-add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_gencpp ${PCL_LIBRARIES} ${PROJECT_NAME}_gencfg)
+add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_gencpp ${PCL_LIBRARIES} ${PROJECT_NAME}_gencfg, ${PROJECT_NAME}_gencpp)
 
 
 ## Declare a C++ library

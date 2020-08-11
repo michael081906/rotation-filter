@@ -24,7 +24,7 @@
 #include <geometry_msgs/Pose.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
-#include <rotation_filter_/rtf.h>
+#include <rotation_filter/rtf.h>
 
 
 class rotation_filter_{
@@ -53,13 +53,17 @@ class rotation_filter_{
     pcl::PointIndices PointIndices_y;
     pcl::PointIndices PointIndices_z;
     void callback(const sensor_msgs::PointCloud2Ptr& cloud);
-    bool rtf_main_callback(rotation_filter_::rtf::Request& req, rotation_filter_::rtf::Response& res);
+    bool rtf_main_callback(rotation_filter::rtf::Request& req, rotation_filter::rtf::Response& res);
     
     dynamic_reconfigure::Server<rotation_filter::rotationConfig> server;
     dynamic_reconfigure::Server<rotation_filter::rotationConfig>::CallbackType f;
     void callback_d(rotation_filter::rotationConfig &config, uint32_t level);
     void store_points_boundaries_rviz();
     void points_corner_computes();
+    void points_corner_computes_sub(double corner_x, double corner_y, double corner_z);
+    void points_corner_transform();
+    void filter_points();
+
     geometry_msgs::Point point;
     geometry_msgs::Point point_centroid;
     std::vector<geometry_msgs::Point> points_for_corner;
@@ -76,8 +80,8 @@ class rotation_filter_{
     tf::TransformBroadcaster br;
     tf::TransformListener listener;
     tf::Transform transform;
-    bool broadcaster_set = false;
-    void set_broadcaster(std::string tf_target_ref, std::string tf_target, std::string tf_new, double offest_x, doulbe offset_y, double offset_z);
+    bool broadcaster_set;
+    void set_broadcaster(std::string tf_target_ref, std::string tf_target, std::string tf_new, double offest_x, double offset_y, double offset_z);
     double R;
     double P;
     double Y;
@@ -89,29 +93,29 @@ class rotation_filter_{
     public:
     rotation_filter_();
     void spin_();
-    typedef boost::function<bool (rotation_filter_::rtf::Request& req, rotation_filter_::rtf::Response& res)> rtf_t;
+    typedef boost::function<bool (rotation_filter::rtf::Request& req, rotation_filter::rtf::Response& res)> rtf_t;
 };
 
-bool rotation_filter_::rtf_main_callback(rotation_filter_::rtf::Request& req, rotation_filter_::rtf::Response& res)
+bool rotation_filter_::rtf_main_callback(rotation_filter::rtf::Request& req, rotation_filter::rtf::Response& res)
 {  
       ROS_INFO_STREAM("[RTF] A service was called ");
       res.module_ = "RTF";
       int error_ = 0;
         switch(req.task_id)
         {
-         case RTF_TASK::SET_TF_TASK: {
+         case SET_TF_TASK: {
          ROS_INFO_STREAM("RTF_TASK::SET_TF_TASK");
          set_broadcaster(req.tf_ref, req.tf_target, req.tf_new, 0, 0, 0);
          break;
        }
-         case RTF_TASK::SET_OFFSET_TASK: {
+         case SET_OFFSET_TASK: {
          ROS_INFO_STREAM("RTF_TASK::SET_OFFSET_TASK");
-         transform.setOrigin( tf::Vector3(offest_x, offset_y, offset_z) );
+         transform.setOrigin( tf::Vector3(req.offset_x, req.offset_y, req.offset_z) );
          break;
        }
-        case RTF_TASK::SET_TF_OFFSET_TASK: {
+        case SET_TF_OFFSET_TASK: {
          ROS_INFO_STREAM("RTF_TASK::SET_TF_OFFSET_TASK");
-         set_broadcaster(req.tf_ref, req.tf_target, req.tf_new, offset_x, offset_y, offset_z);
+         set_broadcaster(req.tf_ref, req.tf_target, req.tf_new, req.offset_x, req.offset_y, req.offset_z);
          break;
        }
        
@@ -160,9 +164,10 @@ rotation_filter_::rotation_filter_()
     points_corner_computes();
     store_points_boundaries_rviz();
 
-    rtf_t rtf_main_callback = boost::bind(&rotation_filter_::pcp_main_callback, this, _1, _2);
+    rtf_t rtf_main_callback = boost::bind(&rotation_filter_::rtf_main_callback, this, _1, _2);
     rtf_sv = n.advertiseService("/rtf_client", rtf_main_callback);
-     
+    
+    broadcaster_set = false;
   }
 
 void rotation_filter_::callback(const sensor_msgs::PointCloud2Ptr& cloud) {
@@ -179,9 +184,12 @@ void rotation_filter_::callback_d(rotation_filter::rotationConfig &config, uint3
               rotation_y = config.rotation_y * M_PI/180.0;
               rotation_z = config.rotation_z * M_PI/180.0;
 
-              R = R + rotation_x;
-              P = P + rotation_y;
-              Y = Y + rotation_z;
+              R = 0 + rotation_x;
+              P = 0 + rotation_y;
+              Y = 0 + rotation_z;
+              //R = R + rotation_x;
+              //P = P + rotation_y;
+              //Y = Y + rotation_z;
               new_q.setRPY(R,P,Y);
               transform.setRotation(new_q);
               
@@ -198,13 +206,167 @@ void rotation_filter_::callback_d(rotation_filter::rotationConfig &config, uint3
 
 void rotation_filter_::spin_()
 {
-    ros::Rate loop_rate(2);
+    ros::Rate loop_rate(5);
     int seq = 0;
     while (ros::ok())
     {
       if(broadcaster_set) br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), tf_target_frame, tf_new_frame_wrt_target_frame));
+      ros::spinOnce();
+      loop_rate.sleep();
+    }
+}// end spin()
 
-      /*
+void rotation_filter_::points_corner_computes_sub(double corner_x, double corner_y, double corner_z)
+{
+    static tf::Vector3 v3_temp;
+    v3_temp = transform *(tf::Vector3(corner_x, corner_y, corner_z));
+    point.x = v3_temp.x();
+    point.y = v3_temp.y();
+    point.z = v3_temp.z();
+    points_for_corner.push_back(point);
+}
+
+void rotation_filter_::points_corner_computes()
+{    
+    // 1 
+    points_for_corner.clear();
+    //point.x = point_centroid.x + passthrough_x_p;
+    //point.y = point_centroid.y + passthrough_y_p;
+    //point.z = point_centroid.z + passthrough_z_p;
+    //points_for_corner.push_back(point);
+    points_corner_computes_sub(point_centroid.x + passthrough_x_p,
+                               point_centroid.y + passthrough_y_p,
+                               point_centroid.z + passthrough_z_p);
+    // 2 
+    //point.x = point_centroid.x + passthrough_x_n;
+    //point.y = point_centroid.y + passthrough_y_p;
+    //point.z = point_centroid.z + passthrough_z_p;
+    //points_for_corner.push_back(point);
+    points_corner_computes_sub(point_centroid.x + passthrough_x_n,
+                               point_centroid.y + passthrough_y_p,
+                               point_centroid.z + passthrough_z_p);
+    // 3
+    //point.x = point_centroid.x + passthrough_x_n;
+    //point.y = point_centroid.y + passthrough_y_n;
+    //point.z = point_centroid.z + passthrough_z_p;
+    //points_for_corner.push_back(point);
+    points_corner_computes_sub(point_centroid.x + passthrough_x_n,
+                               point_centroid.y + passthrough_y_n,
+                               point_centroid.z + passthrough_z_p);
+    // 4
+    //point.x = point_centroid.x + passthrough_x_p;
+    //point.y = point_centroid.y + passthrough_y_n;
+    //point.z = point_centroid.z + passthrough_z_p;
+    //points_for_corner.push_back(point);
+    points_corner_computes_sub(point_centroid.x + passthrough_x_p,
+                               point_centroid.y + passthrough_y_n,
+                               point_centroid.z + passthrough_z_p);
+    // 5
+    //point.x = point_centroid.x + passthrough_x_p;
+    //point.y = point_centroid.y + passthrough_y_p;
+    //point.z = point_centroid.z + passthrough_z_n;
+    //points_for_corner.push_back(point);
+    points_corner_computes_sub(point_centroid.x + passthrough_x_p,
+                               point_centroid.y + passthrough_y_p,
+                               point_centroid.z + passthrough_z_n);
+    // 6
+    //point.x = point_centroid.x + passthrough_x_n;
+    //point.y = point_centroid.y + passthrough_y_p;
+    //point.z = point_centroid.z + passthrough_z_n;
+    //points_for_corner.push_back(point);
+    points_corner_computes_sub(point_centroid.x + passthrough_x_n,
+                               point_centroid.y + passthrough_y_p,
+                               point_centroid.z + passthrough_z_n);
+    // 7
+    //point.x = point_centroid.x + passthrough_x_n;
+    //point.y = point_centroid.y + passthrough_y_n;
+    //point.z = point_centroid.z + passthrough_z_n;
+    //points_for_corner.push_back(point);
+    points_corner_computes_sub(point_centroid.x + passthrough_x_n,
+                               point_centroid.y + passthrough_y_n,
+                               point_centroid.z + passthrough_z_n);
+    // 8
+    //point.x = point_centroid.x + passthrough_x_p;
+    //point.y = point_centroid.y + passthrough_y_n;
+    //point.z = point_centroid.z + passthrough_z_n;
+    //points_for_corner.push_back(point);
+    points_corner_computes_sub(point_centroid.x + passthrough_x_p,
+                               point_centroid.y + passthrough_y_n,
+                               point_centroid.z + passthrough_z_n);
+
+}
+
+void rotation_filter_::points_corner_transform()
+{
+  
+
+}
+
+void rotation_filter_::store_points_boundaries_rviz()
+{
+    marker_for_drawing_rviz.points.clear();
+    marker_for_drawing_rviz.colors.clear();
+    marker_for_drawing_rviz.header.frame_id = tf_target_frame;
+    marker_for_drawing_rviz.header.stamp = ros::Time();
+    marker_for_drawing_rviz.scale.x = 0.01;
+    //marker_for_drawing_rviz.scale.y = 0.1;
+    //marker_for_drawing_rviz.scale.z = 0.1;
+    marker_for_drawing_rviz.action = visualization_msgs::Marker::ADD;
+    marker_for_drawing_rviz.type = visualization_msgs::Marker::LINE_STRIP;
+    marker_for_drawing_rviz.points.push_back(points_for_corner[0]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[1]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[2]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[3]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[0]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[4]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[7]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[3]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[7]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[6]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[2]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[6]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[5]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[1]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[5]);
+    marker_for_drawing_rviz.points.push_back(points_for_corner[4]);
+    
+    for(int i = 0; i < marker_for_drawing_rviz.points.size(); i++) marker_for_drawing_rviz.colors.push_back(color); 
+    vis_pub.publish(marker_for_drawing_rviz);
+    ros::spinOnce();
+}
+
+void rotation_filter_::set_broadcaster(std::string tf_target_ref, std::string tf_target, std::string tf_new, double offest_x, double offset_y, double offset_z)
+{
+  // first listen to the tf_ref 
+  tf::StampedTransform stamped_transform;
+  bool No_info; 
+  No_info = false;
+  while(No_info)
+  { No_info = false;
+    try{
+      listener.lookupTransform(tf_target_ref, tf_target,  
+                               ros::Time(0), stamped_transform);
+    }
+    catch (tf::TransformException ex){
+      ROS_ERROR("%s",ex.what());
+      ros::Duration(1.0).sleep();
+      No_info = true;
+    }
+  }
+
+  // second, use it orientation to publish
+  transform.setOrigin( tf::Vector3(offest_x, offset_y, offset_z) );
+  transform.setRotation(stamped_transform.getRotation());
+  stamped_transform.getBasis().getRPY(R,P,Y);
+  broadcaster_set = true;
+  tf_target_frame = tf_target ; 
+  tf_new_frame_wrt_target_frame = tf_new; 
+}
+
+void rotation_filter_::filter_points()
+{
+  /*
+   
       // rotating the point cloud
       Eigen::Affine3f transforms_point = Eigen::Affine3f::Identity();
       transforms_point.translation() << 0.0 ,0.0 ,0.0;
@@ -280,114 +442,8 @@ void rotation_filter_::spin_()
 
       transformed_cloud->header = pcl_conversions::toPCL(header);
       points_filtered_dbg.publish(*transformed_cloud);
+      
       */
-      ros::spinOnce();
-      loop_rate.sleep();
-    }
-}// end spin()
 
-void rotation_filter_::points_corner_computes()
-{
-    // 1 
-    points_for_corner.clear();
-    point.x = point_centroid.x + passthrough_x_p;
-    point.y = point_centroid.y + passthrough_y_p;
-    point.z = point_centroid.z + passthrough_z_p;
-    points_for_corner.push_back(point);
-    // 2 
-    point.x = point_centroid.x + passthrough_x_n;
-    point.y = point_centroid.y + passthrough_y_p;
-    point.z = point_centroid.z + passthrough_z_p;
-    points_for_corner.push_back(point);
-    // 3
-    point.x = point_centroid.x + passthrough_x_n;
-    point.y = point_centroid.y + passthrough_y_n;
-    point.z = point_centroid.z + passthrough_z_p;
-    points_for_corner.push_back(point);
-    // 4
-    point.x = point_centroid.x + passthrough_x_p;
-    point.y = point_centroid.y + passthrough_y_n;
-    point.z = point_centroid.z + passthrough_z_p;
-    points_for_corner.push_back(point);
-    // 5
-    point.x = point_centroid.x + passthrough_x_p;
-    point.y = point_centroid.y + passthrough_y_p;
-    point.z = point_centroid.z + passthrough_z_n;
-    points_for_corner.push_back(point);
-    // 6
-    point.x = point_centroid.x + passthrough_x_n;
-    point.y = point_centroid.y + passthrough_y_p;
-    point.z = point_centroid.z + passthrough_z_n;
-    points_for_corner.push_back(point);
-    // 7
-    point.x = point_centroid.x + passthrough_x_n;
-    point.y = point_centroid.y + passthrough_y_n;
-    point.z = point_centroid.z + passthrough_z_n;
-    points_for_corner.push_back(point);
-    // 8
-    point.x = point_centroid.x + passthrough_x_p;
-    point.y = point_centroid.y + passthrough_y_n;
-    point.z = point_centroid.z + passthrough_z_n;
-    points_for_corner.push_back(point);
 
-}
-
-void rotation_filter_::store_points_boundaries_rviz()
-{
-    marker_for_drawing_rviz.points.clear();
-    marker_for_drawing_rviz.colors.clear();
-    marker_for_drawing_rviz.header.frame_id = rviz_frame;
-    marker_for_drawing_rviz.header.stamp = ros::Time();
-    marker_for_drawing_rviz.scale.x = 0.01;
-    //marker_for_drawing_rviz.scale.y = 0.1;
-    //marker_for_drawing_rviz.scale.z = 0.1;
-    marker_for_drawing_rviz.action = visualization_msgs::Marker::ADD;
-    marker_for_drawing_rviz.type = visualization_msgs::Marker::LINE_STRIP;
-    marker_for_drawing_rviz.points.push_back(points_for_corner[0]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[1]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[2]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[3]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[0]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[4]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[7]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[3]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[7]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[6]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[2]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[6]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[5]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[1]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[5]);
-    marker_for_drawing_rviz.points.push_back(points_for_corner[4]);
-    
-    for(int i = 0; i < marker_for_drawing_rviz.points.size(); i++) marker_for_drawing_rviz.colors.push_back(color); 
-    vis_pub.publish(marker_for_drawing_rviz);
-    ros::spinOnce();
-}
-
-void rotation_filter_::set_broadcaster(std::string tf_target_ref, std::string tf_target, std::string tf_new, double offest_x, doulbe offset_y, double offset_z)
-{
-  // first listen to the tf_ref 
-  tf::StampedTransform stamped_transform;
-  bool No_info; 
-  while(No_info)
-  { No_info = false;
-    try{
-      listener.lookupTransform(tf_target_ref, tf_target,  
-                               ros::Time(0), stamped_transform);
-    }
-    catch (tf::TransformException ex){
-      ROS_ERROR("%s",ex.what());
-      ros::Duration(1.0).sleep();
-      No_info = true;
-    }
-  }
-
-  // second, use it orientation to publish
-  transform.setOrigin( tf::Vector3(offest_x, offset_y, offset_z) );
-  transform.setRotation(stamped_transform.getRotation());
-  stamped_transform.getBasis().getRPY(R,P,Y);
-  broadcaster_set = true;
-  tf_target_frame = tf_target ; 
-  tf_new_frame_wrt_target_frame = tf_new; 
 }
