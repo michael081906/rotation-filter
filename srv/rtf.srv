@@ -6,6 +6,7 @@ string tf_new
 float64 offset_x
 float64 offset_y
 float64 offset_z
+bool filter
 ---------------
 int32 error_
 string module_
