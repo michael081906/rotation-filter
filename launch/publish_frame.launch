@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
 <launch>
-<node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="1 1 0 0 0 0  link1_parent link1 100" />
+<node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="1 1 0 0 0 0  robot_base_frame camera_frame 10" />
 </launch>

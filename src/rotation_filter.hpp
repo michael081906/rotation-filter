@@ -75,8 +75,6 @@ class rotation_filter_{
       /*2020/8/8*/SET_TF_OFFSET_TASK = 3,
       };
 
-    std::string rviz_frame;
-
     tf::TransformBroadcaster br;
     tf::TransformListener listener;
     tf::Transform transform;
@@ -150,10 +148,8 @@ rotation_filter_::rotation_filter_()
     points_filtered_dbg = n.advertise<PointCloud> ("points_dbg",1);
     vis_pub =  n.advertise<visualization_msgs::Marker>( "visualization_marker", 0 );
     sub_pcl = n.subscribe("/camera/depth_registered/points", 1, &rotation_filter_::callback, this);
-    f = boost::bind(&rotation_filter_::callback_d,this, _1, _2);
+    f = boost::bind(&rotation_filter_::callback_d, this, _1, _2);
     server.setCallback(f);
-    
-    rviz_frame = "world";
 
     // http://www.menucool.com/rgba-color-picker
     color.a = 1.0;
