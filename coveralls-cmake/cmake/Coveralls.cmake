@@ -97,15 +97,15 @@ function(coveralls_setup _COVERAGE_SRCS _COVERALLS_UPLOAD)
 					-S -F json_file=@${COVERALLS_FILE}
 					https://coveralls.io/api/v1/jobs
 
-			DEPENDS coveralls_generate
+			DEPENDS coveralls_generate_rotation_filter
 
 			WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 			COMMENT "Uploading coveralls output...")
 
-		add_custom_target(coveralls_rotation_filter DEPENDS coveralls_upload)
+		add_custom_target(coveralls_rotation_filter DEPENDS coveralls_upload_rotation_filter)
 	else()
 		message("COVERALLS UPLOAD: OFF")
-		add_custom_target(coveralls DEPENDS coveralls_generate)
+		add_custom_target(coveralls_rotation_filter DEPENDS coveralls_generate_rotation_filter)
 	endif()
 
 endfunction()

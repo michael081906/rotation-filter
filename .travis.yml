@@ -72,4 +72,4 @@ script:
 after_script:
   - source devel/setup.bash
   - cd ~/catkin_ws/build
-  - make coveralls
+  - make coveralls_rotation_filter
