@@ -59,7 +59,7 @@ script:
   - source /opt/ros/$ROS_DISTRO/setup.bash
   - cd ~/catkin_ws
   - catkin_make -DCOVERALLS=ON -DCMAKE_BUILD_TYPE=Debug $([ -f $CATKIN_OPTIONS ] && cat $CATKIN_OPTIONS)
-  
+
   #- mkdir build
   #- cd build
   #- cmake -DCOVERALLS=ON -DCMAKE_BUILD_TYPE=Debug ../src -DCMAKE_INSTALL_PREFIX=../install -DCATKIN_DEVEL_PREFIX=../devel $( [ -f $CATKIN_OPTIONS ] && cat $CATKIN_OPTIONS )
