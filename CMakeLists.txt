@@ -2,13 +2,14 @@ cmake_minimum_required(VERSION 2.8.3)
 project(rotation_filter)
 
 #--------------------------2020/8/8/Mkam--------------------------------------
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} 
-	${PROJECT_SOURCE_DIR}/coveralls-cmake/cmake)
-
 option(COVERALLS "Turn on coveralls support" OFF)
 option(COVERALLS_UPLOAD "Upload the generated coveralls json" ON)
 
+
+if (COVERALLS)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} 
+	${PROJECT_SOURCE_DIR}/coveralls-cmake/cmake)
+endif()
 
 if (COVERALLS)
 	include(Coveralls)

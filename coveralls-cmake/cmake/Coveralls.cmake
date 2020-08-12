@@ -60,7 +60,7 @@ function(coveralls_setup _COVERAGE_SRCS _COVERALLS_UPLOAD)
 	#message("Coverage sources: ${COVERAGE_SRCS}")
 	set(COVERALLS_FILE ${PROJECT_BINARY_DIR}/coveralls.json)
 
-	add_custom_target(coveralls_generate_rotation_filter
+	add_custom_target(coveralls_generate
 
 		# Zero the coverage counters.
 		COMMAND ${CMAKE_COMMAND} -DPROJECT_BINARY_DIR="${PROJECT_BINARY_DIR}" -P "${_CMAKE_SCRIPT_PATH}/CoverallsClear.cmake"
@@ -91,21 +91,21 @@ function(coveralls_setup _COVERAGE_SRCS _COVERALLS_UPLOAD)
 			message(FATAL_ERROR "Coveralls: curl not found! Aborting")
 		endif()
 
-		add_custom_target(coveralls_upload_rotation_filter
+		add_custom_target(coveralls_upload
 			# Upload the JSON to coveralls.
 			COMMAND ${CURL_EXECUTABLE}
 					-S -F json_file=@${COVERALLS_FILE}
 					https://coveralls.io/api/v1/jobs
 
-			DEPENDS coveralls_generate_rotation_filter
+			DEPENDS coveralls_generate
 
 			WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 			COMMENT "Uploading coveralls output...")
 
-		add_custom_target(coveralls_rotation_filter DEPENDS coveralls_upload_rotation_filter)
+		add_custom_target(coveralls DEPENDS coveralls_upload)
 	else()
 		message("COVERALLS UPLOAD: OFF")
-		add_custom_target(coveralls_rotation_filter DEPENDS coveralls_generate_rotation_filter)
+		add_custom_target(coveralls DEPENDS coveralls_generate)
 	endif()
 
 endfunction()
