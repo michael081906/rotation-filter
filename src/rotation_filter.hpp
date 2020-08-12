@@ -32,8 +32,8 @@ class rotation_filter_{
 
     private:
     ros::NodeHandle n;
-    ros::Publisher points_filtered;
-    ros::Publisher points_filtered_dbg;
+    ros::Publisher points_filtered_passthrough;
+    ros::Publisher points_filtered_extract;
     ros::Subscriber sub_pcl;
     ros::Publisher vis_pub;
     ros::ServiceServer rtf_sv;
@@ -47,7 +47,7 @@ class rotation_filter_{
     visualization_msgs::Marker marker_for_drawing_rviz;
 
     PointCloud pointcloud_in;
-    PointCloud pointcloud_out;
+    PointCloud pointcloud_user_frame;
     PointCloud pointcloud_filtered;
 
     pcl::PointIndices PointIndices_x;
@@ -153,8 +153,8 @@ rotation_filter_::rotation_filter_()
     point_centroid.y = 0.0;
     point_centroid.z = 0.0;
 
-    points_filtered = n.advertise<PointCloud> ("points",1);
-    points_filtered_dbg = n.advertise<PointCloud> ("points_dbg",1);
+    points_filtered_extract = n.advertise<PointCloud> ("points_extract",1);
+    points_filtered_passthrough = n.advertise<PointCloud> ("points_passthrough",1);
     vis_pub =  n.advertise<visualization_msgs::Marker>( "visualization_marker", 0 );
     sub_pcl = n.subscribe("/see_scope/points", 1, &rotation_filter_::callback, this);
     f = boost::bind(&rotation_filter_::callback_d, this, _1, _2);
@@ -343,7 +343,7 @@ void rotation_filter_::set_broadcaster(std::string tf_target_ref, std::string tf
 {
   // first listen to the tf_ref
   tf::StampedTransform stamped_transform;
-  bool No_info;
+  static bool No_info;
   No_info = false;
   while(No_info)
   { No_info = false;
@@ -374,38 +374,10 @@ void rotation_filter_::filter_points()
     // 3. assuming we have the point frame specified by user as the centroid: tf_new_frame_wrt_target_frame
 
     // Setp1 : transform the point cloud from camera frame to point frame
-    static bool error = pcl_ros::transformPointCloud("camera_frame",
-                                                     pointcloud_in, // camera_frame
-                                                     pointcloud_out, // user_frame
-                                                     listener_used_in_filtered_cb);
+    //                           P_camera_frame          P_user_frame       R_transform
+    pcl_ros::transformPointCloud(pointcloud_in, pointcloud_user_frame,      transform.inverse());
 
-/*
-    std_msgs::Header header;
-    header.stamp = ros::Time::now();
-    header.frame_id = std::string("camera_frame");
-    pointcloud_out.header = pcl_conversions::toPCL(header);
-    points_filtered.publish(pointcloud_out);
-*/
-
-// There is a waste of wooden pallets and plates that were used to ship packages. Those are no longer needed so I would like to send out a request to dispose of them. Thank you.
-  /*
-
-      // rotating the point cloud
-      Eigen::Affine3f transforms_point = Eigen::Affine3f::Identity();
-      transforms_point.translation() << 0.0 ,0.0 ,0.0;
-      transforms_point.rotate(Eigen::AngleAxisf (rotation_z, Eigen::Vector3f::UnitZ())* Eigen::AngleAxisf (rotation_y, Eigen::Vector3f::UnitY()) *
-                                   Eigen::AngleAxisf (rotation_x, Eigen::Vector3f::UnitX()));
-
-      // Executing the transformation
-      PointCloud::Ptr source_cloud(new PointCloud(pointcloud_in));
-      //source_cloud = pointcloud_in.makeShared();
-      PointCloud::Ptr transformed_cloud (new PointCloud ());
-      pcl::transformPointCloud (*source_cloud, *transformed_cloud, transforms_point);
-
-      PointCloud::Ptr source_cloud_dbg(new PointCloud());
-
-
-      // passthrough filtering
+     // passthrough filtering
       /*
       In order to use the getRemovedIndices system you need to initialize your class differently:
       change this:
@@ -413,7 +385,7 @@ void rotation_filter_::filter_points()
       into this:
       pcl::PassThrough<pcl::PointXYZ> pass (true);
       */
-      PointCloud::Ptr transformed_cloud (new PointCloud(pointcloud_out));
+      PointCloud::Ptr transformed_cloud (new PointCloud(pointcloud_user_frame));
       pcl::PassThrough<pcl::PointXYZ> pass(true);
       pass.setInputCloud (transformed_cloud); // setinput needs ptr
       pass.setFilterFieldName ("x");
@@ -432,39 +404,36 @@ void rotation_filter_::filter_points()
       pass.getRemovedIndices(PointIndices_z);
 
 
-
-
       // remove the indices
-      PointCloud::Ptr source_cloud(new PointCloud(pointcloud_in));
+      PointCloud::Ptr source_cloud_ex(new PointCloud(pointcloud_in));
       pcl::PointIndices::Ptr indices_x(new pcl::PointIndices(PointIndices_x));
       pcl::PointIndices::Ptr indices_y(new pcl::PointIndices(PointIndices_y));
       pcl::PointIndices::Ptr indices_z(new pcl::PointIndices(PointIndices_z));
       pcl::ExtractIndices<pcl::PointXYZ> extract;
-      extract.setInputCloud(source_cloud);
+      extract.setInputCloud(source_cloud_ex);
       extract.setIndices(indices_x);
       extract.setNegative(true);
-      extract.filter(*source_cloud);
-      extract.setInputCloud(source_cloud);
+      extract.filter(*source_cloud_ex);
+      extract.setInputCloud(source_cloud_ex);
       extract.setIndices(indices_y);
       extract.setNegative(true);
-      extract.filter(*source_cloud);
-      extract.setInputCloud(source_cloud);
+      extract.filter(*source_cloud_ex);
+      extract.setInputCloud(source_cloud_ex);
       extract.setIndices(indices_z);
       extract.setNegative(true);
-      extract.filter(*source_cloud);
-
-      //pointcloud_filtered = *source_cloud;
-      //pointcloud_filtered = *transformed_cloud;
+      extract.filter(*source_cloud_ex);
 
       std_msgs::Header header;
       header.stamp = ros::Time::now();
-      header.frame_id = std::string("camera_frame");
-      source_cloud->header = pcl_conversions::toPCL(header);
-      points_filtered.publish(*source_cloud); // pointcloud_in
+      //header.frame_id = std::string("camera_frame");
+      header.frame_id = std::string(tf_target_frame);
+      source_cloud_ex->header = pcl_conversions::toPCL(header);
+      points_filtered_extract.publish(*source_cloud_ex); // pointcloud_in from camera_frame
 
-      header.frame_id = std::string("user_frame");
+      //header.frame_id = std::string("user_frame");
+      header.frame_id = std::string(tf_new_frame_wrt_target_frame);
       transformed_cloud->header = pcl_conversions::toPCL(header);
-      points_filtered_dbg.publish(*transformed_cloud); //pointcloud_out
+      points_filtered_passthrough.publish(*transformed_cloud); //pointcloud_out from user_frame
 
 
 
