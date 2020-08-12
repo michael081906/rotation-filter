@@ -1,4 +1,6 @@
 # rotation_filter
+[![Build Status](https://travis-ci.org/michael081906/rotation_filter.svg?branch=master)](https://travis-ci.org/michael081906/rotation_filter)
+[![Coverage Status](https://coveralls.io/repos/github/michael081906/rotation_filter/badge.svg?branch=master)](https://coveralls.io/github/michael081906/rotation_filter?branch=master)
 This package is for point cloud filtering
 
 TODO:  
