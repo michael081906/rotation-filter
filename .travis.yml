@@ -72,4 +72,8 @@ script:
 after_script:
   - source devel/setup.bash
   - cd ~/catkin_ws/build
+  - cmake -DCOVERALLS=ON -DCMAKE_BUILD_TYPE=Debug ../src -DCMAKE_INSTALL_PREFIX=../install -DCATKIN_DEVEL_PREFIX=../devel
+  - make
   - make coveralls_rotation_filter
+after_success:
+  - coveralls_rotation_filter --verbose
