@@ -1,5 +1,10 @@
 # rotation_filter
 This package is for point cloud filtering
+
+TODO:  
+1. roslaunch and remap topics
+2. continuous integration travis and coveralls
+
 ## Useful steps  
 Launch the ros master
 ```
