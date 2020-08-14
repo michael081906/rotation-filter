@@ -14,7 +14,7 @@ cd ..
 rosdep install --from-paths src --ignore-src -r -y
 catkin_make
 ```
-## Usage  
+## Demo  
 Launch the ros master
 ```
 roscore
