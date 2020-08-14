@@ -2,13 +2,19 @@
 [![Build Status](https://travis-ci.org/michael081906/rotation_filter.svg?branch=master)](https://travis-ci.org/michael081906/rotation_filter)
 [![Coverage Status](https://coveralls.io/repos/github/michael081906/rotation_filter/badge.svg?branch=master)](https://coveralls.io/github/michael081906/rotation_filter?branch=master)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)  
-This package is for point cloud filtering
+ROS Kinetic package for point cloud filtering
 
-TODO:  
-1. roslaunch and remap topics
-2. continuous integration travis and coveralls
+## Description
 
-## Useful steps  
+## Installation
+```
+cd ~/catkin_ws/src
+git clone https://github.com/michael081906/rotation-filter.git
+cd ..
+rosdep install --from-paths src --ignore-src -r -y
+catkin_make
+```
+## Usage  
 Launch the ros master
 ```
 roscore
@@ -39,3 +45,6 @@ Then allow the node to filter
 rosservice call /rtf_client "{task_id: 4, tf_ref: 'robot_base_frame', tf_target: 'camera_frame', tf_new: 'user_frame', offset_x: 0.4, offset_y: 0.4,
   offset_z: 0.0, filter: true}"
 ```
+
+### TODO:  
+1. roslaunch and remap topics
