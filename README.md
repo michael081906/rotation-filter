@@ -31,3 +31,6 @@ Open third terminal
 cd ~/catkin_ws/src/rotation-filter/bash/
 bash srv.bash
 ```
+## TODO
+1. Add pointcloud template
+
