@@ -7,8 +7,7 @@ ROS Kinetic package for point cloud filtering
 ## Description
 <img src="https://github.com/michael081906/rotation-filter/blob/michael081906-patch-readme/docs/demo_origin.png" width="400" >  
 <img src="https://github.com/michael081906/rotation-filter/blob/michael081906-patch-readme/docs/demo.gif" width="400" > 
-<div class="after image" >
-
+<div class="after image" >  
 ## Installation  
 ```
 cd ~/catkin_ws/src
