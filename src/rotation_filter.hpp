@@ -26,9 +26,9 @@
 #include <tf/transform_listener.h>
 #include <rotation_filter/rtf.h>
 
-
+template <class T>
 class rotation_filter_{
-    typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+    typedef pcl::PointCloud<T> PointCloud;
 
     private:
     ros::NodeHandle n;
@@ -97,7 +97,8 @@ class rotation_filter_{
     typedef boost::function<bool (rotation_filter::rtf::Request& req, rotation_filter::rtf::Response& res)> rtf_t;
 };
 
-bool rotation_filter_::rtf_main_callback(rotation_filter::rtf::Request& req, rotation_filter::rtf::Response& res)
+template <class T>
+bool rotation_filter_<T>::rtf_main_callback(rotation_filter::rtf::Request& req, rotation_filter::rtf::Response& res)
 {
       ROS_INFO_STREAM("[RTF] A service was called ");
       res.module_ = "RTF";
@@ -135,7 +136,8 @@ bool rotation_filter_::rtf_main_callback(rotation_filter::rtf::Request& req, rot
        return true;
  }
 
-rotation_filter_::rotation_filter_()
+template <class T>
+rotation_filter_<T>::rotation_filter_()
 {
     centroid_x = 0.0;
     centroid_y = 0.0;
@@ -176,12 +178,14 @@ rotation_filter_::rotation_filter_()
     filtered_ = false;
   }
 
-void rotation_filter_::callback(const sensor_msgs::PointCloud2Ptr& cloud)
+template <class T>
+void rotation_filter_<T>::callback(const sensor_msgs::PointCloud2Ptr& cloud)
 {
     pcl::fromROSMsg(*cloud, pointcloud_in);  // copy sensor_msg::Pointcloud message into pcl::PointCloud
   }
 
-void rotation_filter_::callback_d(rotation_filter::rotationConfig &config, uint32_t level)
+template <class T>
+void rotation_filter_<T>::callback_d(rotation_filter::rotationConfig &config, uint32_t level)
 {
    ROS_INFO("Reconfigure Request: %f %f %f - %f %f %f - %f %f %f",
               config.passthrough_x_p, config.passthrough_y_p,config.passthrough_z_p,
@@ -212,7 +216,8 @@ void rotation_filter_::callback_d(rotation_filter::rotationConfig &config, uint3
               store_points_boundaries_rviz();
   }
 
-void rotation_filter_::spin_()
+template <class T>
+void rotation_filter_<T>::spin_()
 {
     ros::Rate loop_rate(5);
     int seq = 0;
@@ -226,7 +231,8 @@ void rotation_filter_::spin_()
 // end spin()
 }
 
-void rotation_filter_::points_corner_computes_sub(double corner_x, double corner_y, double corner_z)
+template <class T>
+void rotation_filter_<T>::points_corner_computes_sub(double corner_x, double corner_y, double corner_z)
 {
     static tf::Vector3 v3_temp;
     v3_temp = transform *(tf::Vector3(corner_x, corner_y, corner_z));
@@ -236,7 +242,8 @@ void rotation_filter_::points_corner_computes_sub(double corner_x, double corner
     points_for_corner.push_back(point);
 }
 
-void rotation_filter_::points_corner_computes()
+template <class T>
+void rotation_filter_<T>::points_corner_computes()
 {
     // 1
     points_for_corner.clear();
@@ -306,7 +313,8 @@ void rotation_filter_::points_corner_computes()
 
 }
 
-void rotation_filter_::store_points_boundaries_rviz()
+template <class T>
+void rotation_filter_<T>::store_points_boundaries_rviz()
 {
     marker_for_drawing_rviz.points.clear();
     marker_for_drawing_rviz.colors.clear();
@@ -339,7 +347,8 @@ void rotation_filter_::store_points_boundaries_rviz()
     ros::spinOnce();
 }
 
-void rotation_filter_::set_broadcaster(std::string tf_target_ref, std::string tf_target, std::string tf_new, double offest_x, double offset_y, double offset_z)
+template <class T>
+void rotation_filter_<T>::set_broadcaster(std::string tf_target_ref, std::string tf_target, std::string tf_new, double offest_x, double offset_y, double offset_z)
 {
   // first listen to the tf_ref
   tf::StampedTransform stamped_transform;
@@ -367,7 +376,8 @@ void rotation_filter_::set_broadcaster(std::string tf_target_ref, std::string tf
   tf_new_frame_wrt_target_frame = tf_new;
 }
 
-void rotation_filter_::filter_points()
+template <class T>
+void rotation_filter_<T>::filter_points()
 {
     // 1. assuming we have the transformation : transform
     // 2. assuming we have the camera frame: tf_target_frame
@@ -385,8 +395,8 @@ void rotation_filter_::filter_points()
       into this:
       pcl::PassThrough<pcl::PointXYZ> pass (true);
       */
-      PointCloud::Ptr transformed_cloud (new PointCloud(pointcloud_user_frame));
-      pcl::PassThrough<pcl::PointXYZ> pass(true);
+      typename PointCloud::Ptr transformed_cloud (new PointCloud(pointcloud_user_frame));
+      typename pcl::PassThrough<T> pass(true);
       pass.setInputCloud (transformed_cloud); // setinput needs ptr
       pass.setFilterFieldName ("x");
       pass.setFilterLimits (passthrough_x_n, passthrough_x_p);
@@ -405,11 +415,11 @@ void rotation_filter_::filter_points()
 
 
       // remove the indices
-      PointCloud::Ptr source_cloud_ex(new PointCloud(pointcloud_in));
+      typename PointCloud::Ptr source_cloud_ex(new PointCloud(pointcloud_in));
       pcl::PointIndices::Ptr indices_x(new pcl::PointIndices(PointIndices_x));
       pcl::PointIndices::Ptr indices_y(new pcl::PointIndices(PointIndices_y));
       pcl::PointIndices::Ptr indices_z(new pcl::PointIndices(PointIndices_z));
-      pcl::ExtractIndices<pcl::PointXYZ> extract;
+      typename pcl::ExtractIndices<T> extract;
       extract.setInputCloud(source_cloud_ex);
       extract.setIndices(indices_x);
       extract.setNegative(true);
