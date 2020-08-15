@@ -5,8 +5,9 @@
 ROS Kinetic package for point cloud filtering
 
 ## Description
-<img src="https://github.com/michael081906/rotation-filter/blob/michael081906-patch-readme/docs/demo_origin.png" width="300" >  
-<img src="https://github.com/michael081906/rotation-filter/blob/michael081906-patch-readme/docs/demo.gif" width="300" > 
+<img src="https://github.com/michael081906/rotation-filter/blob/michael081906-patch-readme/docs/demo_origin.png" width="400" >  
+<img src="https://github.com/michael081906/rotation-filter/blob/michael081906-patch-readme/docs/demo.gif" width="400" > 
+<div class="after image" >
 ## Installation
 ```
 cd ~/catkin_ws/src
@@ -49,3 +50,5 @@ rosservice call /rtf_client "{task_id: 4, tf_ref: 'robot_base_frame', tf_target:
 
 ### TODO:  
 1. roslaunch and remap topics
+
+</div>
