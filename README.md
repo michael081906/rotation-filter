@@ -18,36 +18,16 @@ rosdep install --from-paths src --ignore-src -r -y
 catkin_make
 ```
 ## Demo  
-Launch the ros master
+Open a terminal and launch the ros master
 ```
 roscore
 ```
-Launch the tf to publish frame between two frames. 
+Open second terminal 
 ```
-roslaunch rotation_filter publish_frame.launch
+roslaunch rotation_filter demo.launch
 ```
-Launch point cloud publisher to provide point cloud data. You can use external camera to do so as well.
+Open third terminal
 ```
-roslaunch point_cloud_publisher point_cloud_publisher_single.launch
+cd ~/catkin_ws/src/rotation-filter/bash/
+bash srv.bash
 ```
-Launch the main node
-```
-rosrun rotation_filter rotation_filter_node
-```
-The node provide rqt_reconfigure to allow user adjusting rotations of the filter. 
-```
-rosrun rqt_reconfigure rqt_reconfigure
-```
-In order to set a new frame 
-```
-rosservice call /rtf_client "{task_id: 3, tf_ref: 'robot_base_frame', tf_target: 'camera_frame', tf_new: 'user_frame', offset_x: 0.4, offset_y: 0.4,
-  offset_z: 0.0, filter: false}" 
-```
-Then allow the node to filter
-```
-rosservice call /rtf_client "{task_id: 4, tf_ref: 'robot_base_frame', tf_target: 'camera_frame', tf_new: 'user_frame', offset_x: 0.4, offset_y: 0.4,
-  offset_z: 0.0, filter: true}"
-```
-
-### TODO:  
-1. roslaunch and remap topics
