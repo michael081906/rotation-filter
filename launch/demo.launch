@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+
+<!-- TF frame-->
+<include file="$(find rotation_filter)/launch/publish_frame.launch" />  
+
+<!-- Publish sample point cloud -->
+ <node name="point_cloud_publisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find rotation_filter)/point-cloud/demo_use.pcd 0.2 _frame_id:=/camera_frame"/>
+
+<!-- Rotation_filter-->
+<node name="rotation_filter_main" pkg="rotation_filter" type="rotation_filter_node">
+<remap from="/see_scope/points" to="/cloud_pcd"/>
+</node>
+
+<!-- rqt_reconfigure-->
+<node name="rqt_reconfigure_node" pkg="rqt_reconfigure" type="rqt_reconfigure"/>
+
+<!-- Rviz-->
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find rotation_filter)/rviz/publisher.rviz"/>
+</launch>

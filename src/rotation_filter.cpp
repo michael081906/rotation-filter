@@ -13,6 +13,6 @@ How to use or run this node?
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "rotation_filter");
-  rotation_filter_().spin_();
+  rotation_filter_<pcl::PointXYZ>().spin_();
   return 0;
 }
