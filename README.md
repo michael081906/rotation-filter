@@ -4,8 +4,8 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)  
 ROS Kinetic package for point cloud filtering  
 
-<img src="https://github.com/michael081906/rotation-filter/blob/michael081906-patch-readme/docs/demo_origin.png" width="400" >  
-<img src="https://github.com/michael081906/rotation-filter/blob/michael081906-patch-readme/docs/demo.gif" width="400" > 
+<img src="https://github.com/michael081906/rotation-filter/blob/master/docs/demo_origin.png" width="400" >  
+<img src="https://github.com/michael081906/rotation-filter/blob/master/docs/demo.gif" width="400" > 
 
 ## Description
 
@@ -33,5 +33,3 @@ cd ~/catkin_ws/src/rotation-filter/bash/
 bash srv.bash
 ```
 ## TODO
-1. Add pointcloud template
-
